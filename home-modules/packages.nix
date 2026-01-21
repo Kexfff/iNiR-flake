@@ -41,7 +41,6 @@ let
     optPkg [ "space-grotesk" ] ++
     optPkg [ "twitter-color-emoji" ] ++
     optPkg [ "twemoji-color-font" ] ++
-    optPkg [ "noto-fonts-emoji" ] ++
     optPkg [ "noto-fonts" ] ++
     optPkg [ "noto-fonts-cjk-sans" ] ++
     optPkg [ "noto-fonts-color-emoji" ] ++
