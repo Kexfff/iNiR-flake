@@ -89,9 +89,9 @@ in {
 
       # Audio
       pipewire
-      pipewire-pulse
-      pipewire-alsa
-      pipewire-jack
+      #pipewire-pulse
+      #pipewire-alsa
+      #pipewire-jack
       wireplumber
       playerctl
       libdbusmenu-gtk3
