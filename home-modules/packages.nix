@@ -26,7 +26,7 @@ let
   ]);
 
   optionalExtras =
-    optPkg [ "cloudflare-warp" ] ++
+    #optPkg [ "cloudflare-warp" ] ++
     optPkg [ "blueman" ] ++
     optPkg [ "ollama" ] ++
     optPkg [ "mpvpaper" ] ++
