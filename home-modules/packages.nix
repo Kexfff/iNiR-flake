@@ -122,7 +122,7 @@ in {
       fuzzel
       glib
       translate-shell
-      kvantum
+      #kvantum
       adw-gtk3
       capitaine-cursors
       hyprpicker
