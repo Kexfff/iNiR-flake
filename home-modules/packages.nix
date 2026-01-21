@@ -44,7 +44,7 @@ let
     optPkg [ "noto-fonts-emoji" ] ++
     optPkg [ "noto-fonts" ] ++
     optPkg [ "noto-fonts-cjk-sans" ] ++
-    optPkg [ "noto-fonts-emoji" ] ++
+    optPkg [ "noto-fonts-color-emoji" ] ++
     optPkg [ "nerd-fonts" "jetbrains-mono" ];
 
 in {
