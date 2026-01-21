@@ -75,7 +75,7 @@ in {
       polkit
       networkmanager
       gnome-keyring
-      dolphin
+      kdePackages.dolphin
       foot
       gum
 
