@@ -30,7 +30,7 @@ let
       fi
     done
 
-    for dir in modules services scripts assets translations sdata/uv; do
+    for dir in modules services scripts assets translations sdata; do
       if [ -d "${inirSource}/$dir" ]; then
         cp -r "${inirSource}/$dir" "$out/$dir"
       fi
