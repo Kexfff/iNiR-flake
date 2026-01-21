@@ -81,7 +81,7 @@ in {
 
       # Quickshell runtime deps
       jemalloc
-      libpipewire
+      #libpipewire
       libxcb
       wayland
       libdrm
