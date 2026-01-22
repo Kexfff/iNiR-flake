@@ -39,7 +39,7 @@ let
   ]
   ++ maybeIcon "colloid-icon-theme"
   ++ maybeIcon "moka-icon-theme"
-  ++ maybeIcon "tela-icon-theme";
+  ;
 
 in {
   config = lib.mkIf cfg.enable {
