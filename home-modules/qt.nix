@@ -39,8 +39,6 @@ let
   ]
   ++ maybeIcon "colloid-icon-theme"
   ++ maybeIcon "moka-icon-theme"
-  ++ maybeIcon "numix-icon-theme"
-  ++ maybeIcon "numix-icon-theme-circle"
   ++ maybeIcon "tela-icon-theme";
 
 in {
