@@ -38,6 +38,12 @@ let
 
     chmod -R u+rwX $out
 
+    # Replace hard-coded /usr/bin paths for Nix-friendly ones
+    find $out -type f \( -name "*.qml" -o -name "*.sh" -o -name "*.fish" -o -name "*.py" -o -name "*.js" \) -print0 \
+      | xargs -0 sed -i \
+        -e "s|/usr/bin/df|${pkgs.coreutils}/bin/df|g" \
+        -e "s|/usr/bin/pgrep|${pkgs.procps}/bin/pgrep|g"
+
     # Fix complex python shebangs that reference a venv
     find $out -name "*.py" -print0 | xargs -0 sed -i 's|^#!.*ILLOGICAL_IMPULSE_VIRTUAL_ENV.*|#!/usr/bin/env python3|'
 

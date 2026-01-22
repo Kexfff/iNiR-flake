@@ -1,0 +1,6 @@
+- 2026-01-21: Created Home Manager flake for iNiR (flake.nix, home-module.nix, home-modules/*) using GitHub input github:snowarch/iNiR and QuickShell input.
+- 2026-01-21: Implemented QuickShell packaging and wrapper: copies QML/assets/scripts/services/modules/translations/sdata into XDG config, patches complex python shebangs, sets executable bits, and wires fake venv at ~/.local/state/quickshell/.venv.
+- 2026-01-21: Added dependency set from iNiR docs (core, quickshell Qt6/KDE libs, audio, screencapture, toolkit, theming) and optional packages where available; added material-symbols font package.
+- 2026-01-21: Added activation logic to create required state dirs, install defaults (config.json, niri config, kdeglobals, dolphinstaterc) only if missing and keep kdeglobals writable; patch polkit agent path in niri config.
+- 2026-01-21: Generated flake.lock and removed temporary ./illogical-flake and ./iNiR dirs.
+- 2026-01-21: Fixed quickshell build error by copying full sdata directory (not just sdata/uv).
