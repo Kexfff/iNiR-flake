@@ -47,6 +47,10 @@ let
 
 in {
   config = lib.mkIf cfg.enable {
+    xdg.configFile = {
+      "menus/applications.menu".source =
+        "${lib.getBin pkgs.kservice}/etc/xdg/menus/applications.menu";
+    };
     home.sessionVariables = {
       XDG_DATA_DIRS =
         "${lib.makeSearchPath "share" (iconPkgs ++ [ customPkgs.material-symbols ])}:$XDG_DATA_DIRS";
