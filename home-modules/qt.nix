@@ -45,6 +45,7 @@ in {
         export XDG_DATA_DIRS="${lib.makeSearchPath "share" (iconPkgs ++ [ customPkgs.material-symbols ])}:$HOME/.nix-profile/share:$HOME/.local/share:/etc/profiles/per-user/$USER/share:/run/current-system/sw/share:/usr/share:$XDG_DATA_DIRS"
         exec ${qsPackage}/bin/qs "$@"
       '')
+      pkgs.matugen
     ] ++ qtImports ++ [
       pkgs.qt6Packages.qt6ct
       pythonEnv
