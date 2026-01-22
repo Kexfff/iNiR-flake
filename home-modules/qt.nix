@@ -10,6 +10,9 @@ let
 
   maybeIcon = name: lib.optional (lib.attrByPath [ name ] null pkgs != null) (lib.attrByPath [ name ] null pkgs);
   maybePkg = path: lib.optional (lib.attrByPath path null pkgs != null) (lib.attrByPath path null pkgs);
+  xdgMenuPkgs =
+    (maybePkg [ "kservice" "bin" ])
+    ++ (maybePkg [ "kdePackages" "kservice" ]);
 
   qtImports = [
     pkgs.kdePackages.qtbase
@@ -48,7 +51,7 @@ in {
       XDG_DATA_DIRS =
         "${lib.makeSearchPath "share" (iconPkgs ++ [ customPkgs.material-symbols ])}:$XDG_DATA_DIRS";
       XDG_CONFIG_DIRS =
-        "$HOME/.nix-profile/etc/xdg:/etc/profiles/per-user/$USER/etc/xdg:/run/current-system/sw/etc/xdg:$XDG_CONFIG_DIRS";
+        "${lib.makeSearchPath "etc/xdg" xdgMenuPkgs}:$HOME/.nix-profile/etc/xdg:/etc/profiles/per-user/$USER/etc/xdg:/run/current-system/sw/etc/xdg:$XDG_CONFIG_DIRS";
     };
     home.packages = [
       (pkgs.writeShellScriptBin "qs" ''
@@ -64,7 +67,7 @@ in {
       pkgs.kdePackages.kservice
       pkgs.desktop-file-utils
       pkgs.shared-mime-info
-    ] ++ maybePkg [ "kservice" ] ++ [
+    ] ++ (maybePkg [ "kservice" ]) ++ xdgMenuPkgs ++ [
       pythonEnv
     ];
   };
