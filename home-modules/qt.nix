@@ -47,9 +47,16 @@ let
 
 in {
   config = lib.mkIf cfg.enable {
-    xdg.configFile = {
+    xdg.configFile = let
+      kserviceMenuPkg =
+        if lib.attrByPath [ "kservice" "bin" ] null pkgs != null
+        then pkgs.kservice.bin
+        else if lib.attrByPath [ "kdePackages" "kservice" ] null pkgs != null
+        then pkgs.kdePackages.kservice
+        else null;
+    in lib.mkIf (kserviceMenuPkg != null) {
       "menus/applications.menu".source =
-        "${lib.getBin pkgs.kservice}/etc/xdg/menus/applications.menu";
+        "${lib.getBin kserviceMenuPkg}/etc/xdg/menus/applications.menu";
     };
     home.sessionVariables = {
       XDG_DATA_DIRS =
