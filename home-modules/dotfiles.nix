@@ -45,7 +45,12 @@ let
         -e "s|/usr/bin/pgrep|${pkgs.procps}/bin/pgrep|g" \
         -e "s|/usr/bin/whoami|${pkgs.coreutils}/bin/whoami|g" \
         -e "s|/usr/bin/bash|${pkgs.bash}/bin/bash|g" \
-        -e "s|/usr/bin/pidof|${pkgs.procps}/bin/pidof|g"
+        -e "s|/usr/bin/pidof|${pkgs.procps}/bin/pidof|g" \
+        -e "s|/usr/bin/which|${pkgs.which}/bin/which|g" \
+        -e "s|/usr/bin/nmcli|${pkgs.networkmanager}/bin/nmcli|g" \
+        -e "s|/usr/bin/find|${pkgs.findutils}/bin/find|g" \
+        -e "s|/usr/bin/gsettings|${pkgs.glib}/bin/gsettings|g" \
+        -e "s|/usr/bin/sh|${pkgs.bash}/bin/sh|g"
 
     # Fix complex python shebangs that reference a venv
     find $out -name "*.py" -print0 | xargs -0 sed -i 's|^#!.*ILLOGICAL_IMPULSE_VIRTUAL_ENV.*|#!/usr/bin/env python3|'
