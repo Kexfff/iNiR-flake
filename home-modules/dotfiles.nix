@@ -100,7 +100,6 @@ in {
       "matugen".source = "${inirSource}/defaults/matugen";
       "gtk-3.0/settings.ini".source = "${inirSource}/defaults/gtk-3.0/settings.ini";
       "gtk-4.0/settings.ini".source = "${inirSource}/defaults/gtk-4.0/settings.ini";
-      "dolphinrc".source = "${inirSource}/defaults/kde/dolphinrc";
     };
 
     home.activation.inirDefaults = config.lib.dag.entryAfter [ "writeBoundary" ] ''
@@ -142,6 +141,18 @@ in {
         $DRY_RUN_CMD mkdir -p "${config.xdg.stateHome}"
         $DRY_RUN_CMD cp "${inirSource}/defaults/kde/dolphinstaterc" "${config.xdg.stateHome}/dolphinstaterc"
         $DRY_RUN_CMD chmod u+w "${config.xdg.stateHome}/dolphinstaterc"
+      fi
+
+      # Install dolphinrc if missing and keep it writable
+      if [ -L "${config.xdg.configHome}/dolphinrc" ]; then
+        $DRY_RUN_CMD rm "${config.xdg.configHome}/dolphinrc"
+      fi
+
+      if [ ! -f "${config.xdg.configHome}/dolphinrc" ]; then
+        $DRY_RUN_CMD cp "${inirSource}/defaults/kde/dolphinrc" "${config.xdg.configHome}/dolphinrc"
+        $DRY_RUN_CMD chmod u+w "${config.xdg.configHome}/dolphinrc"
+      else
+        $DRY_RUN_CMD chmod u+w "${config.xdg.configHome}/dolphinrc"
       fi
     '';
   };
