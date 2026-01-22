@@ -57,6 +57,10 @@ in {
       pkgs.matugen
     ] ++ iconPkgs ++ qtImports ++ [
       pkgs.qt6Packages.qt6ct
+      pkgs.kdePackages.kio
+      pkgs.kdePackages.kservice
+      pkgs.desktop-file-utils
+      pkgs.shared-mime-info
       pythonEnv
     ];
   };
