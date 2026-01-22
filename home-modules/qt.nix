@@ -43,6 +43,10 @@ let
 
 in {
   config = lib.mkIf cfg.enable {
+    home.sessionVariables = {
+      XDG_DATA_DIRS =
+        "${lib.makeSearchPath "share" (iconPkgs ++ [ customPkgs.material-symbols ])}:$XDG_DATA_DIRS";
+    };
     home.packages = [
       (pkgs.writeShellScriptBin "qs" ''
         export QT_PLUGIN_PATH="${lib.makeSearchPath "lib/qt-6/plugins" qtImports}:${lib.makeSearchPath "lib/qt6/plugins" qtImports}:${lib.makeSearchPath "lib/plugins" qtImports}"
