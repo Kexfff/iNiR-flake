@@ -19,14 +19,6 @@ let
       else if polkitGnome != null then "${polkitGnome}/libexec/polkit-gnome-authentication-agent-1"
       else "/usr/lib/mate-polkit/polkit-mate-authentication-agent-1";
 
-  kserviceMenuCandidates =
-    let
-      kserviceBin = lib.attrByPath [ "kservice" "bin" ] null pkgs;
-    in
-      lib.filter (p: p != null) [
-        (if kserviceBin != null then "${kserviceBin}/etc/xdg/menus/applications.menu" else null)
-      ];
-
   quickshellConfig = pkgs.runCommand "inir-quickshell-config" {
     buildInputs = [ pkgs.bash cfg.internal.pythonEnv ];
   } ''
@@ -68,6 +60,7 @@ let
         -e "s|/usr/bin/kwriteconfig6|${pkgs.kdePackages.kconfig}/bin/kwriteconfig6|g" \
         -e "s|/usr/bin/curl|${pkgs.curl}/bin/curl|g" \
         -e "s|/usr/bin/ls|${pkgs.coreutils}/bin/ls|g" \
+        -e "s|/usr/bin/systemctl|${pkgs.systemd}/bin/systemctl|g" \
         -e "s|/usr/share/icons|/usr/share/icons\" , \"$HOME/.nix-profile/share/icons\" , \"/etc/profiles/per-user/$USER/share/icons\" , \"/run/current-system/sw/share/icons|g"
 
     # Fix complex python shebangs that reference a venv
@@ -164,13 +157,7 @@ in {
       fi
 
       # Ensure applications.menu exists for kbuildsycoca6 (Open With menu)
-      menu_path=""
-      for candidate in ${lib.concatStringsSep " " (map lib.escapeShellArg kserviceMenuCandidates)}; do
-        if [ -f "$candidate" ]; then
-          menu_path="$candidate"
-          break
-        fi
-      done
+      menu_path="$(${pkgs.coreutils}/bin/ls /nix/store/*-kservice-*-bin/etc/xdg/menus/applications.menu 2>/dev/null | ${pkgs.coreutils}/bin/head -n 1)"
 
       if [ -n "$menu_path" ]; then
         $DRY_RUN_CMD mkdir -p "${config.xdg.configHome}/menus"
