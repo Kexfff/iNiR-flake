@@ -53,7 +53,9 @@ let
         -e "s|/usr/bin/sh|${pkgs.bash}/bin/sh|g" \
         -e "s|/usr/bin/trans|${pkgs.translate-shell}/bin/trans|g" \
         -e "s|/usr/bin/flatpak|${pkgs.flatpak}/bin/flatpak|g" \
-        -e "s|/usr/bin/qs|qs|g"
+        -e "s|/usr/bin/qs|qs|g" \
+        -e "s|/usr/bin/magick|${pkgs.imagemagick}/bin/magick|g" \
+        -e "s|/usr/bin/qalc|${pkgs.libqalculate}/bin/qalc|g"
 
     # Fix complex python shebangs that reference a venv
     find $out -name "*.py" -print0 | xargs -0 sed -i 's|^#!.*ILLOGICAL_IMPULSE_VIRTUAL_ENV.*|#!/usr/bin/env python3|'
