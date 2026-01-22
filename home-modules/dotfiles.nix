@@ -57,6 +57,7 @@ let
         -e "s|/usr/bin/magick|${pkgs.imagemagick}/bin/magick|g" \
         -e "s|/usr/bin/qalc|${pkgs.libqalculate}/bin/qalc|g" \
         -e "s|/usr/bin/python3|${pkgs.python3}/bin/python3|g" \
+        -e "s|/usr/bin/kwriteconfig6|${pkgs.kdePackages.kconfig}/bin/kwriteconfig6|g" \
         -e "s|/usr/share/icons|/usr/share/icons\" , \"$HOME/.nix-profile/share/icons\" , \"/etc/profiles/per-user/$USER/share/icons\" , \"/run/current-system/sw/share/icons|g"
 
     # Fix complex python shebangs that reference a venv
