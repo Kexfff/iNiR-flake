@@ -19,14 +19,15 @@ let
       else if polkitGnome != null then "${polkitGnome}/libexec/polkit-gnome-authentication-agent-1"
       else "/usr/lib/mate-polkit/polkit-mate-authentication-agent-1";
 
-  kserviceMenuPath =
+  kserviceMenuCandidates =
     let
       kserviceBin = lib.attrByPath [ "kservice" "bin" ] null pkgs;
       kserviceKde = lib.attrByPath [ "kdePackages" "kservice" ] null pkgs;
     in
-      if kserviceBin != null then "${kserviceBin}/etc/xdg/menus/applications.menu"
-      else if kserviceKde != null then "${kserviceKde}/etc/xdg/menus/applications.menu"
-      else null;
+      lib.filter (p: p != null) [
+        (if kserviceBin != null then "${kserviceBin}/etc/xdg/menus/applications.menu" else null)
+        (if kserviceKde != null then "${kserviceKde}/etc/xdg/menus/applications.menu" else null)
+      ];
 
   quickshellConfig = pkgs.runCommand "inir-quickshell-config" {
     buildInputs = [ pkgs.bash cfg.internal.pythonEnv ];
@@ -165,13 +166,21 @@ in {
       fi
 
       # Ensure applications.menu exists for kbuildsycoca6 (Open With menu)
-      if [ -n "${kserviceMenuPath}" ]; then
+      menu_path=""
+      for candidate in ${lib.concatStringsSep " " (map lib.escapeShellArg kserviceMenuCandidates)}; do
+        if [ -f "$candidate" ]; then
+          menu_path="$candidate"
+          break
+        fi
+      done
+
+      if [ -n "$menu_path" ]; then
         $DRY_RUN_CMD mkdir -p "${config.xdg.configHome}/menus"
         if [ -L "${config.xdg.configHome}/menus/applications.menu" ]; then
           $DRY_RUN_CMD rm "${config.xdg.configHome}/menus/applications.menu"
         fi
         if [ ! -f "${config.xdg.configHome}/menus/applications.menu" ]; then
-          $DRY_RUN_CMD cp "${kserviceMenuPath}" "${config.xdg.configHome}/menus/applications.menu"
+          $DRY_RUN_CMD cp "$menu_path" "${config.xdg.configHome}/menus/applications.menu"
           $DRY_RUN_CMD chmod u+w "${config.xdg.configHome}/menus/applications.menu"
         fi
       fi
