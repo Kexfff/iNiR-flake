@@ -8,6 +8,8 @@ let
 
   qsPackage = inputs.quickshell.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
+  maybeIcon = name: lib.optional (lib.attrByPath [ name ] null pkgs != null) (lib.attrByPath [ name ] null pkgs);
+
   qtImports = [
     pkgs.kdePackages.qtbase
     pkgs.kdePackages.qtdeclarative
@@ -34,7 +36,12 @@ let
     pkgs.hicolor-icon-theme
     pkgs.papirus-icon-theme
     pkgs.kdePackages.breeze-icons
-  ];
+  ]
+  ++ maybeIcon "colloid-icon-theme"
+  ++ maybeIcon "moka-icon-theme"
+  ++ maybeIcon "numix-icon-theme"
+  ++ maybeIcon "numix-icon-theme-circle"
+  ++ maybeIcon "tela-icon-theme";
 
 in {
   config = lib.mkIf cfg.enable {
@@ -46,7 +53,7 @@ in {
         exec ${qsPackage}/bin/qs "$@"
       '')
       pkgs.matugen
-    ] ++ qtImports ++ [
+    ] ++ iconPkgs ++ qtImports ++ [
       pkgs.qt6Packages.qt6ct
       pythonEnv
     ];
