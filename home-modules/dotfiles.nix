@@ -22,11 +22,9 @@ let
   kserviceMenuCandidates =
     let
       kserviceBin = lib.attrByPath [ "kservice" "bin" ] null pkgs;
-      kserviceKde = lib.attrByPath [ "kdePackages" "kservice" ] null pkgs;
     in
       lib.filter (p: p != null) [
         (if kserviceBin != null then "${kserviceBin}/etc/xdg/menus/applications.menu" else null)
-        (if kserviceKde != null then "${kserviceKde}/etc/xdg/menus/applications.menu" else null)
       ];
 
   quickshellConfig = pkgs.runCommand "inir-quickshell-config" {

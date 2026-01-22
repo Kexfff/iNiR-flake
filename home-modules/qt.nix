@@ -11,8 +11,7 @@ let
   maybeIcon = name: lib.optional (lib.attrByPath [ name ] null pkgs != null) (lib.attrByPath [ name ] null pkgs);
   maybePkg = path: lib.optional (lib.attrByPath path null pkgs != null) (lib.attrByPath path null pkgs);
   xdgMenuPkgs =
-    (maybePkg [ "kservice" "bin" ])
-    ++ (maybePkg [ "kdePackages" "kservice" ]);
+    (maybePkg [ "kservice" "bin" ]);
 
   qtImports = [
     pkgs.kdePackages.qtbase
@@ -67,7 +66,7 @@ in {
       pkgs.kdePackages.kservice
       pkgs.desktop-file-utils
       pkgs.shared-mime-info
-    ] ++ (maybePkg [ "kservice" ]) ++ xdgMenuPkgs ++ [
+    ] ++ (maybePkg [ "kservice" "bin" ]) ++ xdgMenuPkgs ++ [
       pythonEnv
     ];
   };
