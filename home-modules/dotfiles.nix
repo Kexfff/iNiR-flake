@@ -63,6 +63,11 @@ let
         -e "s|/usr/bin/systemctl|${pkgs.systemd}/bin/systemctl|g" \
         -e "s|/usr/share/icons|/usr/share/icons\" , \"$HOME/.nix-profile/share/icons\" , \"/etc/profiles/per-user/$USER/share/icons\" , \"/run/current-system/sw/share/icons|g"
 
+    # Avoid resetting icon theme to missing/default on wallpaper changes
+    if [ -f "$out/services/IconThemeService.qml" ]; then
+      ${pkgs.perl}/bin/perl -0777 -i -pe 's@\Qif (!running && themes.length > 0) {\n                const uniqueSorted = Array.from(new Set(themes)).sort()\n                root.availableThemes = uniqueSorted\n                themes = []\n            }\E@if (!running && themes.length > 0) {\n                const uniqueSorted = Array.from(new Set(themes)).sort()\n                root.availableThemes = uniqueSorted\n                themes = []\n\n                const savedTheme = Config.ready ? (Config.options?.appearance?.iconTheme ?? "") : \"\"\n                const saved = String(savedTheme).trim()\n                const hasSaved = saved.length > 0 && uniqueSorted.includes(saved)\n\n                if (hasSaved && root.currentTheme !== saved) {\n                    root.currentTheme = saved\n                    gsettingsSetProc.themeName = saved\n                    gsettingsSetProc.skipRestart = true\n                    gsettingsSetProc.running = false\n                    gsettingsSetProc.running = true\n                } else if (root.currentTheme && !uniqueSorted.includes(root.currentTheme) && uniqueSorted.includes(\"breeze\")) {\n                    root.currentTheme = \"breeze\"\n                    gsettingsSetProc.themeName = \"breeze\"\n                    gsettingsSetProc.skipRestart = true\n                    gsettingsSetProc.running = false\n                    gsettingsSetProc.running = true\n                    Config.setNestedValue(\"appearance.iconTheme\", \"breeze\")\n                    Config.flushWrites()\n                }\n            }@s' "$out/services/IconThemeService.qml"
+    fi
+
     # Fix complex python shebangs that reference a venv
     find $out -name "*.py" -print0 | xargs -0 sed -i 's|^#!.*ILLOGICAL_IMPULSE_VIRTUAL_ENV.*|#!/usr/bin/env python3|'
 
