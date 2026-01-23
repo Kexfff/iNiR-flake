@@ -70,10 +70,28 @@ let
 
     # Preserve configured icon theme when applying wallpaper colors
     if [ -f "$out/scripts/colors/apply-gtk-theme.sh" ]; then
-      sed -i \
-        -e 's|icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "'"'"')|icon_theme=""; if [[ -f "$SHELL_CONFIG_FILE" ]] && command -v jq &>/dev/null; then icon_theme=$(jq -r '"'"'.appearance.iconTheme // ""'"'"' "$SHELL_CONFIG_FILE" 2>/dev/null); fi; if [[ -z "$icon_theme" || "$icon_theme" == "null" ]]; then icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "'"'"'); fi|g' \
-        -e 's|\\[\\[ -z "\\$icon_theme" \\]\\] && icon_theme="Adwaita"|[[ -z "$icon_theme" || "$icon_theme" == "null" ]] && icon_theme="breeze"|g' \
-        "$out/scripts/colors/apply-gtk-theme.sh"
+      OUT="$out" ${cfg.internal.pythonEnv}/bin/python3 - <<'PY'
+import os
+from pathlib import Path
+
+path = Path(os.environ["OUT"]) / "scripts/colors/apply-gtk-theme.sh"
+text = path.read_text()
+old = '    icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "\\\'")\\n' \
+      '    [[ -z "$icon_theme" ]] && icon_theme="Adwaita"\\n'
+new = (
+    '    icon_theme=""\\n'
+    '    if [[ -f "$SHELL_CONFIG_FILE" ]] && command -v jq &>/dev/null; then\\n'
+    '        icon_theme=$(jq -r \'.appearance.iconTheme // ""\' "$SHELL_CONFIG_FILE" 2>/dev/null)\\n'
+    '    fi\\n'
+    '    if [[ -z "$icon_theme" || "$icon_theme" == "null" ]]; then\\n'
+    '        icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "\\\'")\\n'
+    '    fi\\n'
+    '    [[ -z "$icon_theme" || "$icon_theme" == "null" ]] && icon_theme="breeze"\\n'
+)
+if old not in text:
+    raise SystemExit("apply-gtk-theme.sh pattern not found")
+path.write_text(text.replace(old, new))
+PY
     fi
 
     # Fix complex python shebangs that reference a venv
