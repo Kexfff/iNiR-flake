@@ -64,6 +64,8 @@ in {
       pkgs.qt6Packages.qt6ct
       pkgs.kdePackages.kio
       pkgs.kdePackages.kservice
+      pkgs.kdePackages.plasma-integration
+      pkgs.kdePackages.qqc2-breeze-style
       pkgs.desktop-file-utils
       pkgs.shared-mime-info
     ] ++ (maybePkg [ "kservice" "bin" ]) ++ xdgMenuPkgs ++ [
