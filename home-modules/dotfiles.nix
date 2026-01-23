@@ -72,25 +72,29 @@ let
     if [ -f "$out/scripts/colors/apply-gtk-theme.sh" ]; then
       OUT="$out" ${cfg.internal.pythonEnv}/bin/python3 - <<'PY'
 import os
+import re
 from pathlib import Path
 
 path = Path(os.environ["OUT"]) / "scripts/colors/apply-gtk-theme.sh"
 text = path.read_text()
-old = '    icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "\\\'")\\n' \
-      '    [[ -z "$icon_theme" ]] && icon_theme="Adwaita"\\n'
-new = (
-    '    icon_theme=""\\n'
-    '    if [[ -f "$SHELL_CONFIG_FILE" ]] && command -v jq &>/dev/null; then\\n'
-    '        icon_theme=$(jq -r \'.appearance.iconTheme // ""\' "$SHELL_CONFIG_FILE" 2>/dev/null)\\n'
-    '    fi\\n'
-    '    if [[ -z "$icon_theme" || "$icon_theme" == "null" ]]; then\\n'
-    '        icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "\\\'")\\n'
-    '    fi\\n'
-    '    [[ -z "$icon_theme" || "$icon_theme" == "null" ]] && icon_theme="breeze"\\n'
+pattern = re.compile(
+    r'(?m)^(\\s*)icon_theme=\\$\\(gsettings get org\\.gnome\\.desktop\\.interface icon-theme[^\\n]*\\)\\n'
+    r'(?:\\s*\\[\\[ -z "\\$icon_theme" \\]\\] && icon_theme="[^"]*"\\n)?'
 )
-if old not in text:
-    raise SystemExit("apply-gtk-theme.sh pattern not found")
-path.write_text(text.replace(old, new))
+replacement = (
+    r'\\1icon_theme=""\\n'
+    r'\\1if [[ -f "$SHELL_CONFIG_FILE" ]] && command -v jq &>/dev/null; then\\n'
+    r'\\1    icon_theme=$(jq -r \'.appearance.iconTheme // ""\' "$SHELL_CONFIG_FILE" 2>/dev/null)\\n'
+    r'\\1fi\\n'
+    r'\\1if [[ -z "$icon_theme" || "$icon_theme" == "null" ]]; then\\n'
+    r'\\1    icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "\\\'")\\n'
+    r'\\1fi\\n'
+    r'\\1[[ -z "$icon_theme" || "$icon_theme" == "null" ]] && icon_theme="breeze"\\n'
+)
+new_text, n = pattern.subn(replacement, text, count=1)
+path.write_text(new_text)
+if n == 0:
+    print("apply-gtk-theme.sh icon_theme pattern not found; no changes applied")
 PY
     fi
 
