@@ -168,6 +168,11 @@ in {
         $DRY_RUN_CMD sed -i "s|/usr/lib/mate-polkit/polkit-mate-authentication-agent-1|${polkitAgentPath}|g" "${config.xdg.configHome}/niri/config.kdl"
       fi
 
+      # Remove Qt style override so KDE theme can control Qt apps (Dolphin)
+      if [ -f "${config.xdg.configHome}/niri/config.kdl" ]; then
+        $DRY_RUN_CMD sed -i '/QT_STYLE_OVERRIDE/d' "${config.xdg.configHome}/niri/config.kdl"
+      fi
+
       # Ensure kdeglobals is writable (scripts modify it)
       if [ -L "${config.xdg.configHome}/kdeglobals" ]; then
         $DRY_RUN_CMD rm "${config.xdg.configHome}/kdeglobals"
