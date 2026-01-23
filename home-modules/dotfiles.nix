@@ -70,7 +70,10 @@ let
 
     # Preserve configured icon theme when applying wallpaper colors
     if [ -f "$out/scripts/colors/apply-gtk-theme.sh" ]; then
-      ${pkgs.perl}/bin/perl -0777 -i -pe 's@\Q    local icon_theme\n    icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d \"\\'\" )\n    [[ -z \"$icon_theme\" ]] && icon_theme=\"Adwaita\"\n\E@    local icon_theme\n    icon_theme=\"\"\n    if [[ -f \"$SHELL_CONFIG_FILE\" ]] && command -v jq &>/dev/null; then\n        icon_theme=$(jq -r \'.appearance.iconTheme // \"\"\' \"$SHELL_CONFIG_FILE\" 2>/dev/null)\n    fi\n    if [[ -z \"$icon_theme\" || \"$icon_theme\" == \"null\" ]]; then\n        icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d \"\\'\" )\n    fi\n    [[ -z \"$icon_theme\" || \"$icon_theme\" == \"null\" ]] && icon_theme=\"breeze\"\n@s' "$out/scripts/colors/apply-gtk-theme.sh"
+      sed -i \
+        -e 's|icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "'"'"')|icon_theme=""; if [[ -f "$SHELL_CONFIG_FILE" ]] && command -v jq &>/dev/null; then icon_theme=$(jq -r '"'"'.appearance.iconTheme // ""'"'"' "$SHELL_CONFIG_FILE" 2>/dev/null); fi; if [[ -z "$icon_theme" || "$icon_theme" == "null" ]]; then icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "'"'"'); fi|g' \
+        -e 's|\\[\\[ -z "\\$icon_theme" \\]\\] && icon_theme="Adwaita"|[[ -z "$icon_theme" || "$icon_theme" == "null" ]] && icon_theme="breeze"|g' \
+        "$out/scripts/colors/apply-gtk-theme.sh"
     fi
 
     # Fix complex python shebangs that reference a venv
