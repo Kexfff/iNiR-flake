@@ -103,6 +103,30 @@ while i < len(lines):
 path.write_text("\n".join(out_lines) + ("\n" if text.endswith("\n") else ""))
 if not replaced:
     print("apply-gtk-theme.sh icon_theme pattern not found; no changes applied")
+
+# Allow KDE/Qt theming even when app/shell theming is disabled
+old_exit = 'if [[ "$enable_apps_shell" == "false" ]]; then\\n    exit 0\\nfi\\n'
+new_exit = 'if [[ "$enable_apps_shell" == "false" && "$enable_qt_apps" == "false" ]]; then\\n    exit 0\\nfi\\n'
+if old_exit in text:
+    text = text.replace(old_exit, new_exit)
+
+# Guard GTK CSS writes behind enable_apps_shell
+gtk_block = (
+    'mkdir -p "$(dirname "$GTK4_CSS")" "$(dirname "$GTK3_CSS")"\\n'
+    '[[ -L "$GTK4_CSS" ]] && rm "$GTK4_CSS"\\n'
+    '[[ -L "$GTK3_CSS" ]] && rm "$GTK3_CSS"\\n'
+    'generate_gtk_css > "$GTK4_CSS"\\n'
+    'generate_gtk_css > "$GTK3_CSS"\\n'
+)
+gtk_wrapped = (
+    'if [[ "$enable_apps_shell" != "false" ]]; then\\n'
+    + gtk_block +
+    'fi\\n'
+)
+if gtk_block in text:
+    text = text.replace(gtk_block, gtk_wrapped)
+
+path.write_text(text)
 PY
     fi
 
