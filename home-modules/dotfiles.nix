@@ -72,28 +72,36 @@ let
     if [ -f "$out/scripts/colors/apply-gtk-theme.sh" ]; then
       OUT="$out" ${cfg.internal.pythonEnv}/bin/python3 - <<'PY'
 import os
-import re
 from pathlib import Path
 
 path = Path(os.environ["OUT"]) / "scripts/colors/apply-gtk-theme.sh"
 text = path.read_text()
-pattern = re.compile(
-    r'(?m)^(\\s*)icon_theme=\\$\\(gsettings get org\\.gnome\\.desktop\\.interface icon-theme[^\\n]*\\)\\n'
-    r'(?:\\s*\\[\\[ -z "\\$icon_theme" \\]\\] && icon_theme="[^"]*"\\n)?'
-)
-replacement = (
-    r'\\1icon_theme=""\\n'
-    r'\\1if [[ -f "$SHELL_CONFIG_FILE" ]] && command -v jq &>/dev/null; then\\n'
-    r'\\1    icon_theme=$(jq -r \'.appearance.iconTheme // ""\' "$SHELL_CONFIG_FILE" 2>/dev/null)\\n'
-    r'\\1fi\\n'
-    r'\\1if [[ -z "$icon_theme" || "$icon_theme" == "null" ]]; then\\n'
-    r'\\1    icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "\\\'")\\n'
-    r'\\1fi\\n'
-    r'\\1[[ -z "$icon_theme" || "$icon_theme" == "null" ]] && icon_theme="breeze"\\n'
-)
-new_text, n = pattern.subn(replacement, text, count=1)
-path.write_text(new_text)
-if n == 0:
+lines = text.splitlines()
+out_lines = []
+replaced = False
+i = 0
+while i < len(lines):
+    line = lines[i]
+    if "icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme" in line:
+        indent = line.split("i")[0]
+        out_lines.append(f"{indent}icon_theme=\"\"")
+        out_lines.append(f"{indent}if [[ -f \"$SHELL_CONFIG_FILE\" ]] && command -v jq &>/dev/null; then")
+        out_lines.append(f"{indent}    icon_theme=$(jq -r '.appearance.iconTheme // \"\"' \"$SHELL_CONFIG_FILE\" 2>/dev/null)")
+        out_lines.append(f"{indent}fi")
+        out_lines.append(f"{indent}if [[ -z \"$icon_theme\" || \"$icon_theme\" == \"null\" ]]; then")
+        out_lines.append(f"{indent}    icon_theme=$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d \"\\'\")")
+        out_lines.append(f"{indent}fi")
+        out_lines.append(f"{indent}[[ -z \"$icon_theme\" || \"$icon_theme\" == \"null\" ]] && icon_theme=\"breeze\"")
+        replaced = True
+        # Skip next line if it's the Adwaita fallback
+        if i + 1 < len(lines) and "icon_theme=\"Adwaita\"" in lines[i + 1]:
+            i += 2
+            continue
+    out_lines.append(line)
+    i += 1
+
+path.write_text("\n".join(out_lines) + ("\n" if text.endswith("\n") else ""))
+if not replaced:
     print("apply-gtk-theme.sh icon_theme pattern not found; no changes applied")
 PY
     fi
