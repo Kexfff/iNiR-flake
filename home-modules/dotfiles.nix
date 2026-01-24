@@ -207,7 +207,7 @@ in {
       # Ensure applications.menu exists for kbuildsycoca6 (Open With menu)
       menu_path="$(${pkgs.coreutils}/bin/ls /nix/store/*-kservice-*-bin/etc/xdg/menus/applications.menu 2>/dev/null | ${pkgs.coreutils}/bin/head -n 1)"
 
-      if [ -n "$menu_path" ]; then
+      if [ -n "$menu_path" ] && [ -f "$menu_path" ]; then
         $DRY_RUN_CMD mkdir -p "${config.xdg.configHome}/menus"
         if [ -L "${config.xdg.configHome}/menus/applications.menu" ]; then
           $DRY_RUN_CMD rm "${config.xdg.configHome}/menus/applications.menu"
