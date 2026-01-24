@@ -3,11 +3,11 @@
     "inir": {
       "flake": false,
       "locked": {
-        "lastModified": 1767439995,
-        "narHash": "sha256-eDrJkqQwXZQBXNnxbgAzsWFa33QB6TEVhePeBvIZdIE=",
+        "lastModified": 1769039744,
+        "narHash": "sha256-gwk9RTkFyoug9tUjTUewMh+Y2L+aAri6gXARU6mf6NY=",
         "owner": "snowarch",
         "repo": "iNiR",
-        "rev": "6a67ca9b1587996820ede09e8b6001608a04aad9",
+        "rev": "cd81f2368e11d6b03d2d61e2da5102b719e71edd",
         "type": "github"
       },
       "original": {
@@ -18,11 +18,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1768886240,
-        "narHash": "sha256-C2TjvwYZ2VDxYWeqvvJ5XPPp6U7H66zeJlRaErJKoEM=",
+        "lastModified": 1769018530,
+        "narHash": "sha256-MJ27Cy2NtBEV5tsK+YraYr2g851f3Fl1LpNHDzDX15c=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "80e4adbcf8992d3fd27ad4964fbb84907f9478b0",
+        "rev": "88d3861acdd3d2f0e361767018218e51810df8a1",
         "type": "github"
       },
       "original": {
