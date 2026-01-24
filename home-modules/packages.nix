@@ -78,6 +78,7 @@ in {
       kdePackages.dolphin
       foot
       gum
+      kdePackages.kservice
 
       # Quickshell runtime deps
       jemalloc
