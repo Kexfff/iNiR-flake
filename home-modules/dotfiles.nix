@@ -61,6 +61,7 @@ let
         -e "s|/usr/bin/curl|${pkgs.curl}/bin/curl|g" \
         -e "s|/usr/bin/ls|${pkgs.coreutils}/bin/ls|g" \
         -e "s|/usr/bin/systemctl|${pkgs.systemd}/bin/systemctl|g" \
+        -e "s|/usr/bin/pkill|${pkgs.procps}/bin/pkill|g" \
         -e "s|/usr/share/icons|/usr/share/icons\" , \"$HOME/.nix-profile/share/icons\" , \"/etc/profiles/per-user/$USER/share/icons\" , \"/run/current-system/sw/share/icons|g"
 
     # Avoid resetting icon theme to missing/default on wallpaper changes
