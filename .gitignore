@@ -4,3 +4,8 @@ result-*
 
 # Ignore automatically generated direnv output
 .direnv
+
+.kilo
+
+# Python test caches
+__pycache__/

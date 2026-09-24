@@ -6,6 +6,7 @@
 , rsync
 , callPackage
 , quickshell
+, gsettings-desktop-schemas
 , src
 , version ? "unstable"
 , mascotSrc ? null                 # tarball from ./mascot-pack.nix (optional)
@@ -19,6 +20,7 @@ let
   binPath = lib.makeBinPath runtime;
   qmlPath = lib.makeSearchPath "lib/qt-6/qml" deps.qml;
   pluginPath = lib.makeSearchPath "lib/qt-6/plugins" deps.qml;
+  schemaDir = "${gsettings-desktop-schemas}/share/gsettings-schemas/${gsettings-desktop-schemas.name}/glib-2.0/schemas";
   dataPath = lib.makeSearchPath "share" deps.dataPackages;
 in
 stdenvNoCC.mkDerivation (finalAttrs: {
@@ -65,6 +67,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
         -exec sed -i '1!s#/usr/bin/##g' {} +
     done
 
+    python3 ${./patch-runtime.py} "$runtime"
+
     ${lib.optionalString (mascotSrc != null) ''
       # Kira art pack lives *inside* the runtime dir so the shell manifest finds it.
       mkdir -p "$runtime/assets/images/mascot"
@@ -87,6 +91,24 @@ stdenvNoCC.mkDerivation (finalAttrs: {
           dots/.config/niri/config.kdl > "$out/share/inir/niri-config.kdl"
     fi
 
+    # Preserve the old default only for exact-content migration.
+    cp "$out/share/inir/niri-config.kdl" "$out/share/inir/legacy-niri-config.kdl"
+    rm -rf "$out/share/inir/dots/niri"
+    cp -r defaults/niri "$out/share/inir/dots/niri"
+    chmod -R u+w "$out/share/inir/dots"
+    find "$out/share/inir/dots/niri" -name '*.kdl' -exec sed -i \
+      -e '/polkit-mate-authentication-agent-1/d' \
+      -e "s#~/.config/quickshell/inir#$runtime#g" \
+      -e 's#\$HOME/.local/state/quickshell/.venv#${deps.pythonEnv}#g' {} +
+    cp "$out/share/inir/dots/niri/config.kdl" "$out/share/inir/niri-config.kdl"
+    ln -s dots/niri/config.d "$out/share/inir/config.d"
+    # Settings/reset operations must see the same Nix-compatible defaults.
+    cp -r --remove-destination "$out/share/inir/dots/niri/." "$runtime/defaults/niri/"
+    cp -r --remove-destination "$out/share/inir/dots/niri/." "$runtime/dots/.config/niri/"
+    cp ${./seed-config.py} "$out/share/inir/seed-config.py"
+    makeWrapper ${deps.pythonEnv}/bin/python3 "$out/bin/inir-seed-config" \
+      --add-flags "$out/share/inir/seed-config.py $out/share/inir/dots --legacy $out/share/inir/legacy-niri-config.kdl"
+
     makeWrapper "$runtime/scripts/inir" "$out/bin/inir" \
       --prefix PATH : "${binPath}" \
       --prefix QML2_IMPORT_PATH : "${qmlPath}" \
@@ -95,6 +117,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       --prefix XDG_DATA_DIRS : "${dataPath}" \
       --set-default INIR_SYSTEM_RUNTIME_DIR "$runtime" \
       --set-default INIR_FALLBACK_SYSTEM_RUNTIME_DIR "$runtime" \
+      --set-default GSETTINGS_SCHEMA_DIR "${schemaDir}" \
       --set-default INIR_VENV "${deps.pythonEnv}" \
       --set-default ILLOGICAL_IMPULSE_VIRTUAL_ENV "${deps.pythonEnv}" \
       --set-default QT_QPA_PLATFORMTHEME kde \
@@ -110,17 +133,19 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       --prefix QML2_IMPORT_PATH : "${qmlPath}" \
       --prefix QT_PLUGIN_PATH : "${pluginPath}" \
       --prefix XDG_DATA_DIRS : "${dataPath}" \
+      --set-default GSETTINGS_SCHEMA_DIR "${schemaDir}" \
       --add-flags "-p $runtime"
 
     runHook postInstall
   '';
 
   passthru = {
+    gsettingsSchemaDir = schemaDir;
     inherit (deps) pythonEnv fonts dataPackages hasDarkly;
     runtimeDependencies = runtime;
     sessionTools = deps.sessionTools ++ extraRuntimePackages;
     runtimeDir = "${placeholder "out"}/share/quickshell/inir";
-    niriConfig = "${placeholder "out"}/share/inir/niri-config.kdl";
+    niriConfig = "${placeholder "out"}/share/inir/dots/niri/config.kdl";
     dots = "${placeholder "out"}/share/inir/dots";
   };
 

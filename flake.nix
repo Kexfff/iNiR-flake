@@ -71,6 +71,22 @@
 
       checks = forAllSystems (pkgs: {
         package = self.packages.${pkgs.stdenv.hostPlatform.system}.inir;
+        configuration = pkgs.runCommand "inir-configuration-check" {
+          nativeBuildInputs = [ pkgs.python3 pkgs.niri pkgs.bash ];
+          INIR_TEST_PACKAGE = self.packages.${pkgs.stdenv.hostPlatform.system}.inir;
+        } ''
+          export HOME="$TMPDIR/home"
+          mkdir -p "$HOME"
+          mkdir -p tests nix
+          cp ${./tests}/*.py tests/
+          cp ${./nix/seed-config.py} nix/seed-config.py
+          python3 -m unittest discover -s tests
+          ${self.packages.${pkgs.stdenv.hostPlatform.system}.inir}/bin/inir-seed-config
+          niri validate -c "$HOME/.config/niri/config.kdl"
+          GSETTINGS_SCHEMA_DIR="${self.packages.${pkgs.stdenv.hostPlatform.system}.inir.gsettingsSchemaDir}" \
+            ${pkgs.glib}/bin/gsettings list-keys org.gnome.desktop.interface >/dev/null
+          touch "$out"
+        '';
       });
 
       formatter = forAllSystems (pkgs: pkgs.nixfmt-rfc-style);

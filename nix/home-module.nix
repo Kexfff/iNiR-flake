@@ -13,6 +13,7 @@ let
   sessionEnv = {
     INIR_SYSTEM_RUNTIME_DIR = runtimeDir;
     INIR_FALLBACK_SYSTEM_RUNTIME_DIR = runtimeDir;
+    GSETTINGS_SCHEMA_DIR = pkg.gsettingsSchemaDir;
     INIR_VENV = "${pkg.pythonEnv}";
     ILLOGICAL_IMPULSE_VIRTUAL_ENV = "${pkg.pythonEnv}";
     QT_QPA_PLATFORMTHEME = "kde";
@@ -55,7 +56,7 @@ in
     dots.mode = mkOption {
       type = types.enum [ "copy" "symlink" ];
       default = "copy";
-      description = "copy: seed ~/.config once (editable, like the Arch installer). symlink: manage the files read-only via xdg.configFile.";
+      description = "Seed writable runtime configuration. In symlink mode only Matugen templates are linked; runtime outputs and Niri configuration remain writable.";
     };
     pointerCursor.enable = mkOption {
       type = types.bool;
@@ -65,7 +66,7 @@ in
   };
 
   config = mkIf cfg.enable {
-    home.packages = [ pkg ]
+    home.packages = [ pkg pkgs.xwayland-satellite ]
       ++ cfg.extraPackages
       ++ optionals cfg.installRuntimePackages pkg.sessionTools
       ++ optionals cfg.fonts.enable pkg.fonts;
@@ -81,31 +82,27 @@ in
     xdg.configFile = lib.mkMerge [
       (mkIf cfg.configSymlink.enable { "quickshell/inir".source = runtimeDir; })
       (mkIf (cfg.dots.enable && cfg.dots.mode == "symlink") {
-        "niri/config.kdl".source = mkDefault pkg.niriConfig;
-        "kdeglobals".source = mkDefault "${dots}/kdeglobals";
-        "darklyrc".source = mkDefault "${dots}/darklyrc";
-        "fuzzel/fuzzel.ini".source = mkDefault "${dots}/fuzzel/fuzzel.ini";
-        "gtk-3.0/settings.ini".source = mkDefault "${dots}/gtk-3.0/settings.ini";
-        "gtk-4.0/settings.ini".source = mkDefault "${dots}/gtk-4.0/settings.ini";
-        "Kvantum/kvantum.kvconfig".source = mkDefault "${dots}/Kvantum/kvantum.kvconfig";
-        "kitty".source = mkDefault "${dots}/kitty";
-        "foot/foot.ini".source = mkDefault "${dots}/foot/foot.ini";
+        "matugen".source = "${dots}/matugen";
+      })
+      (mkIf config.xdg.userDirs.enable {
+        "autostart/xdg-user-dirs.desktop".text = "[Desktop Entry]\nType=Application\nName=User directories\nHidden=true\n";
       })
     ];
 
-    # Copy-once seeding: never overwrites a file that already exists.
-    home.activation.inirSeedDots = mkIf (cfg.dots.enable && cfg.dots.mode == "copy")
-      (lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        cfgdir="${config.xdg.configHome}"
-        mkdir -p "$cfgdir/niri"
-        if [ ! -e "$cfgdir/niri/config.kdl" ] && [ -f "${pkg.niriConfig}" ]; then
-          run cp --no-preserve=mode,ownership "${pkg.niriConfig}" "$cfgdir/niri/config.kdl"
-          echo "inir: seeded $cfgdir/niri/config.kdl"
-        fi
-        if [ -d "${dots}" ]; then
-          run cp -r --update=none --no-preserve=mode,ownership "${dots}/." "$cfgdir/" || true
-        fi
+    home.activation.inirSeedDots = mkIf cfg.dots.enable
+      (lib.hm.dag.entryAfter [ "writeBoundary" "linkGeneration" ] ''
+        run ${pkg}/bin/inir-seed-config --target ${lib.escapeShellArg config.xdg.configHome}
       '');
+
+    # Seed before Niri reads its configuration, including first login.
+    systemd.user.services.inir-config = mkIf cfg.dots.enable {
+      Unit = { Description = "Seed writable iNiR defaults"; Before = [ "niri.service" ]; };
+      Service = {
+        Type = "oneshot";
+        ExecStart = "${pkg}/bin/inir-seed-config --target \"${config.xdg.configHome}\"";
+      };
+      Install.WantedBy = [ "niri.service" ];
+    };
 
     home.pointerCursor = mkIf cfg.pointerCursor.enable (mkDefault {
       package = pkgs.capitaine-cursors;

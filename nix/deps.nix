@@ -79,7 +79,7 @@ let
     wl-clipboard cliphist libnotify wlsunset
     polkit_gnome networkmanager gnome-keyring
     nautilus kitty foot fish gum
-    xwayland-satellite glib dbus systemd
+    xwayland-satellite glib libsecret dbus systemd
     kdePackages.kservice         # kbuildsycoca6 (called from the niri config)
   ]) ++ wallpaperDaemon;
 
@@ -150,7 +150,7 @@ in
   runtime = lib.unique ([ pythonEnv ] ++ core ++ quickshellStack ++ audio ++ screencapture ++ toolkit ++ theming);
 
   # Handy for `environment.systemPackages` without the Qt library soup.
-  sessionTools = lib.unique (core ++ audio ++ screencapture ++ toolkit ++ theming ++ [ pkgs.quickshell ] ++ darkly
+  sessionTools = lib.unique ([ pythonEnv ] ++ core ++ audio ++ screencapture ++ toolkit ++ theming ++ [ pkgs.quickshell ] ++ darkly
     ++ (with pkgs.kdePackages; [ kdialog qt6ct qtstyleplugin-kvantum breeze-icons plasma-integration ]));
 }
 

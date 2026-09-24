@@ -13,6 +13,7 @@ let
   sessionEnv = {
     INIR_SYSTEM_RUNTIME_DIR = runtimeDir;
     INIR_FALLBACK_SYSTEM_RUNTIME_DIR = runtimeDir;
+    GSETTINGS_SCHEMA_DIR = pkg.gsettingsSchemaDir;
     INIR_VENV = "${pkg.pythonEnv}";
     ILLOGICAL_IMPULSE_VIRTUAL_ENV = "${pkg.pythonEnv}";
     XDG_MENU_PREFIX = "plasma-";
@@ -66,14 +67,15 @@ in
   config = mkIf cfg.enable (mkMerge [
     # ------------------------------------------------------------- packages
     {
+      warnings = optional (cfg.users == [ ]) "programs.inir.users is empty: set it to your login users to enable lock-before-sleep and hardware permissions.";
       environment.systemPackages =
-        [ pkg pkgs.xdg-desktop-portal-gtk pkgs.xdg-desktop-portal-gnome ]
+        [ pkg pkgs.xwayland-satellite pkgs.xdg-desktop-portal-gtk pkgs.xdg-desktop-portal-gnome ]
         ++ cfg.extraPackages
         ++ optionals cfg.installRuntimePackages pkg.sessionTools;
 
       environment.sessionVariables = mapAttrs (_: mkDefault) sessionEnv;
       environment.etc = mkIf cfg.dots.enable (mkMerge [
-        (etcDefault "niri/config.kdl" pkg.niriConfig "dots/.config/niri/config.kdl")
+        (etcDefault "niri" "${dots}/niri" "defaults/niri/config.kdl")
         (etcDefault "xdg/kdeglobals" "${dots}/kdeglobals" "dots/.config/kdeglobals")
         (etcDefault "xdg/darklyrc" "${dots}/darklyrc" "dots/.config/darklyrc")
         (etcDefault "xdg/fuzzel/fuzzel.ini" "${dots}/fuzzel/fuzzel.ini" "dots/.config/fuzzel/fuzzel.ini")
@@ -224,15 +226,38 @@ in
         };
       };
 
-      systemd.user.services.inir-xdg-user-dirs = {
-        description = "Create XDG user directories for iNiR (Pictures/Screenshots, wallpapers)";
+      systemd.user.services.inir-config = mkIf cfg.dots.enable {
+        description = "Seed writable iNiR defaults";
         wantedBy = [ "niri.service" ];
+        before = [ "niri.service" ];
         serviceConfig = {
           Type = "oneshot";
-          ExecStart = "${pkgs.xdg-user-dirs}/bin/xdg-user-dirs-update";
+          ExecStart = "${pkg}/bin/inir-seed-config";
         };
       };
+
+      # A user manager has no sleep.target. One system unit per configured user
+      # runs as that user, and is inactive after each invocation so every sleep locks.
+      systemd.services = lib.listToAttrs (map (user: {
+        name = "inir-lock-before-sleep-${user}";
+        value = {
+          description = "Lock ${user}'s active iNiR session before sleep";
+          wantedBy = [ "sleep.target" ];
+          before = [ "sleep.target" ];
+          path = [ pkgs.coreutils pkgs.systemd ];
+          serviceConfig = {
+            Type = "oneshot";
+            User = user;
+            TimeoutStartSec = 20;
+          };
+          script = ''
+            export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+            export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+            systemctl --user is-active --quiet inir.service || exit 0
+            ${lib.getExe pkg} lock prepareSleep
+          '';
+        };
+      }) cfg.users);
     }
   ]);
 }
-

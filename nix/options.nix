@@ -49,8 +49,9 @@ in
       description = ''
         Provide iNiR's default dotfiles (niri config wired to inir, kdeglobals,
         darklyrc, fuzzel, GTK 3/4 settings, Kvantum, kitty, foot). NixOS installs
-        them as system-wide fallbacks under /etc; Home Manager seeds them into
-        ~/.config once and never overwrites existing user files.
+        them as system-wide fallbacks under /etc and seeds writable files before
+        Niri starts; Home Manager also seeds them on activation. Custom files
+        are preserved. Exact legacy defaults are migrated with a backup.
       '';
     };
 

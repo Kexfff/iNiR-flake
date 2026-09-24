@@ -22,7 +22,7 @@
 
 While upstream provides an experimental flake, it leaves crucial system-level plumbing unaddressed—resulting in broken font paths, missing PAM rules, failing Python virtual environments in read-only store paths, absent Polkit agents, missing XDG portals, and hardware access permission errors.
 
-**`inir-flake` solves all of this.** It maps the entire [Arch package reference](https://github.com/snowarch/iNiR/wiki/PACKAGES) directly onto `nixpkgs`, wires every user and system service, provisions a closed Python environment for wallpaper theming and InnerTube playback, configures PAM and Polkit, and provides sane default dotfiles out of the box.
+**`inir-flake` provides the NixOS integration for these components.** It maps the entire [Arch package reference](https://github.com/snowarch/iNiR/wiki/PACKAGES) directly onto `nixpkgs`, wires every user and system service, provisions a closed Python environment for wallpaper theming and InnerTube playback, configures PAM and Polkit, and provides sane default dotfiles out of the box.
 
 ```nix
 # That's literally all you need in your NixOS configuration:
@@ -47,7 +47,7 @@ Here is what happens with upstream's packaging vs. what `inir-flake` does:
 | **🌐 XDG Desktop Portals** | Missing screensharing, file chooser, and Secret portal coordination. | Configures `xdg.portal` with GTK & GNOME portals prioritized for Niri with explicit Secret and FileChooser routing. |
 | **⌨️ Input & Hardware** | Virtual typing (`ydotool`), DDC/CI monitor brightness (`ddcutil`), and evdev fail with permission denied. | Enables `programs.ydotool`, `hardware.i2c`, and automatically adds configured users to `input`, `video`, `i2c`, `ydotool`, and `networkmanager` groups. |
 | **🎨 Qt & GTK Theming** | Qt apps don't match Material You colors because `plasma-integration`, `Darkly`, and `kdeglobals` aren't wired. | Sets `qt.platformTheme = "kde"` (reads generated `kdeglobals`), injects `QT_STYLE_OVERRIDE = "Darkly"`, and sets up Kvantum, breeze-icons, and GTK 3/4 themes. |
-| **🧩 Niri Configuration** | Upstream niri config has hardcoded Arch paths (`/usr/bin/qs`, `qs -c inir ...`, `launch-terminal.sh`). | Automatically rewrites and deploys a clean `config.kdl` using wrapped `inir` launcher calls and system binary discovery. |
+| **🧩 Niri Configuration** | Upstream niri config has hardcoded Arch paths (`/usr/bin/qs`, `qs -c inir ...`, `launch-terminal.sh`). | Packages the complete `defaults/niri/` tree and seeds writable configuration before Niri starts, with Nix-compatible helper paths. |
 | **📦 Missing Tools** | Crashes when running OCR, video recording, or equalizers. | Bundles `tesseract` with 9 language datasets (eng, spa, rus, jpn, chi), `mpv` with MPRIS script, `wf-recorder`, `easyeffects` + `lsp-plugins`, `hyprpicker`, `swappy`, etc. |
 | **🐱 Kira Mascot Pack** | Upstream's `inir-with-mascot` uses a `symlinkJoin` that the wrapper script ignores. | Extracts the verified v3 mascot art pack into the derivation's runtime asset directory so `mascot.enable = true` works instantly. |
 
@@ -153,7 +153,7 @@ You can also manage iNiR on a per-user basis with Home Manager.
   programs.inir = {
     enable = true;
     
-    # Choose how dotfiles are managed: "copy" (editable) or "symlink" (declarative)
+    # Writable dotfiles; "symlink" links only the Matugen template directory
     dots.mode = "copy";
     
     # Keep ~/.config/quickshell/inir symlink active for scripts
@@ -194,7 +194,7 @@ nix run github:YOUR_USER_OR_REPO/inir-flake -- settings
 | `package` | `package` | *auto* | Both | The iNiR package to use. Built against your system's `pkgs` set. |
 | `users` | `listOf str` | `[ ]` | NixOS | Usernames to add to `input`, `video`, `i2c`, `ydotool`, and `networkmanager` groups. |
 | `dots.enable` | `bool` | `true` | Both | Provide default configurations for Niri, Darkly, Kvantum, GTK, Fuzzel, Kitty, and Foot. |
-| `dots.mode` | `enum [ "copy" "symlink" ]` | `"copy"` | HM | `"copy"` seeds editable files on activation; `"symlink"` creates read-only Nix store links. |
+| `dots.mode` | `enum [ "copy" "symlink" ]` | `"copy"` | HM | `"copy"` seeds writable files; `"symlink"` links Matugen templates while keeping runtime configuration writable. |
 | `configSymlink.enable`| `bool` | `true` | HM | Exposes `~/.config/quickshell/inir` pointing to the packaged runtime. |
 | `fonts.enable` | `bool` | `true` | Both | Installs and configures all required fonts and Fontconfig presets. |
 | `installRuntimePackages` | `bool` | `true` | Both | Installs kitty, nautilus, fuzzel, wl-clipboard, cliphist, grim, slurp, playerctl into system PATH. |
@@ -217,30 +217,47 @@ nix run github:YOUR_USER_OR_REPO/inir-flake -- settings
 
 ## 📂 Configuration Modes: `dots.mode`
 
-When configuring iNiR via Home Manager (`homeModules.inir`), you have two distinct approaches for managing dotfiles:
+The package ships the complete upstream `defaults/niri/` tree, including all nine
+`config.d/*.kdl` files, and the Matugen templates. Home Manager seeds writable
+files during activation. Both modules also install `inir-config.service`, ordered
+before `niri.service`, so the NixOS-only installation gets per-user configuration
+on first login. NixOS additionally provides the complete `/etc/niri` fallback.
 
-### Mode 1: `dots.mode = "copy"` (Default & Recommended)
+Existing custom files are preserved. An exact match for the old packaged
+monolithic Niri config is backed up as `config.kdl.pre-modular` and upgraded.
+Modified monolithic configs are left alone, with a message pointing to the seeded
+`config.d` directory; merge your changes into the modular config manually.
+`90-user-extra.kdl` is the place for personal overrides.
 
-```nix
-programs.inir.dots.mode = "copy";
-```
+`dots.mode = "copy"` is the default. With `dots.mode = "symlink"`, only the
+Matugen template directory is linked to the store. Niri, KDE, GTK, terminal and
+other runtime configuration stays writable in both modes because iNiR edits it.
+This changes the older behavior that linked those writable files. Home Manager
+removes its old managed links during activation before seeding replacements.
+Existing unmanaged symlinks are left untouched.
 
-* **Behavior**: During Home Manager activation (`home.activation`), a special DAG script inspects your `~/.config` directory. If `~/.config/niri/config.kdl` or any other template file (GTK, Kvantum, darklyrc, fuzzel, kitty) does not exist, it **copies** the patched default file with normal write permissions (`cp --update=none --no-preserve=mode,ownership`).
-* **Why use this?**:
-  * **Interactive Customization**: You can tweak `~/.config/niri/config.kdl` or use iNiR's built-in Settings UI (`Super+,`) to change appearance, layout, or keybindings, and the changes are preserved permanently.
-  * **Safe & Non-Destructive**: It will **never overwrite** your existing dotfiles. If you already have a `~/.config/niri/config.kdl`, it is left untouched.
-  * **Matches Upstream Behavior**: Emulates the Arch installer's friendly dotfile provisioning.
+If `kdeglobals` lacks `[Colors:View]`, seeding backs it up as
+`kdeglobals.pre-inir` and fills missing color values without discarding unrelated
+settings. Theme generation uses an explicit GSettings schema directory and
+replaces the palette only after successful generation. There is no theme-reapply
+service.
 
-### Mode 2: `dots.mode = "symlink"` (Purely Declarative)
+List every iNiR login user in `programs.inir.users` on the NixOS side. Each gets a
+system lock-before-sleep unit, which skips inactive iNiR sessions and invokes
+`inir lock prepareSleep` on every sleep. Lock errors remain visible in the journal;
+this ordering hook does not guarantee that systemd will cancel suspend on failure.
+Home Manager alone cannot install this system-level hook.
 
-```nix
-programs.inir.dots.mode = "symlink";
-```
+The package preserves runtime dependencies when importing the login PATH and
+includes `secret-tool` and the Python environment in session tools. NixOS installs
+XWayland satellite even when `installRuntimePackages` is disabled. The icon picker
+searches XDG data directories and follows Nix profile links.
 
-* **Behavior**: Uses standard Home Manager `xdg.configFile` links. Your `~/.config/niri/config.kdl`, `~/.config/kdeglobals`, `~/.config/gtk-3.0/settings.ini`, etc., become read-only symlinks directly into `/nix/store/...`.
-* **Why use this?**:
-  * **Strict Reproducibility**: If you want your entire desktop configuration to strictly originate from your Nix flake without local state drifting.
-  * **Caution**: Modifying settings via the iNiR GUI that attempt to write directly to these specific config files will throw file-is-read-only errors unless overridden.
+Home Manager shadows the XDG user-directory autostart when it owns user dirs;
+the NixOS module does not run a competing updater. Do not run upstream `./setup`.
+`inir service install/uninstall/enable/disable` are rejected by this package;
+manage service ownership through NixOS/Home Manager. Start, stop, restart, status,
+and logs remain available without rewriting the managed unit.
 
 ---
 
