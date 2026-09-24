@@ -150,7 +150,9 @@ in
   runtime = lib.unique ([ pythonEnv ] ++ core ++ quickshellStack ++ audio ++ screencapture ++ toolkit ++ theming);
 
   # Handy for `environment.systemPackages` without the Qt library soup.
-  sessionTools = lib.unique ([ pythonEnv ] ++ core ++ audio ++ screencapture ++ toolkit ++ theming ++ [ pkgs.quickshell ] ++ darkly
+  # The Python environment also exports dependency CLIs (notably yt-dlp).
+  # Prefer the standalone packages in profiles, while INIR_VENV and the wrapper
+  # continue to use the complete Python environment directly.
+  sessionTools = lib.unique ([ (lib.lowPrio pythonEnv) ] ++ core ++ audio ++ screencapture ++ toolkit ++ theming ++ [ pkgs.quickshell ] ++ darkly
     ++ (with pkgs.kdePackages; [ kdialog qt6ct qtstyleplugin-kvantum breeze-icons plasma-integration ]));
 }
-

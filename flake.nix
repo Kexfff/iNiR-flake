@@ -71,6 +71,11 @@
 
       checks = forAllSystems (pkgs: {
         package = self.packages.${pkgs.stdenv.hostPlatform.system}.inir;
+        session-profile = pkgs.buildEnv {
+          name = "inir-session-profile-check";
+          paths = self.packages.${pkgs.stdenv.hostPlatform.system}.inir.sessionTools;
+          pathsToLink = [ "/bin" "/share" ];
+        };
         configuration = pkgs.runCommand "inir-configuration-check" {
           nativeBuildInputs = [ pkgs.python3 pkgs.niri pkgs.bash ];
           INIR_TEST_PACKAGE = self.packages.${pkgs.stdenv.hostPlatform.system}.inir;
@@ -92,4 +97,3 @@
       formatter = forAllSystems (pkgs: pkgs.nixfmt-rfc-style);
     };
 }
-
