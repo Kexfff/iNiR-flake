@@ -52,17 +52,23 @@ for setting in ['icon-theme', 'font-name', 'monospace-font-name']:
         if '=$(gsettings get org.gnome.desktop.interface ' + setting in line else line
         for line in lines) + text[end:])
 
-path = root / 'services/IconThemeService.qml'
-text = path.read_text()
-start = text.index('        return [', text.index('function dockIconCandidates'))
-end = text.index('\n    }', start)
-text = text[:start] + """        return root.iconRoots.flatMap(base => [
+# Match the complete candidate array, not an arbitrary `return [` substring:
+# the absolute-path guard above it also contains `return []`.
+replace('services/IconThemeService.qml', """        return [
+            `file://${home}/.local/share/icons/${theme}/apps/scalable/${iconName}.svg`,
+            `file:///usr/share/icons/${theme}/apps/scalable/${iconName}.svg`,
+            `file://${home}/.local/share/icons/${theme}/scalable/apps/${iconName}.svg`,
+            `file:///usr/share/icons/${theme}/scalable/apps/${iconName}.svg`,
+            `file://${home}/.local/share/icons/${theme}/apps/256x256/${iconName}.png`,
+            `file:///usr/share/icons/${theme}/apps/256x256/${iconName}.png`,
+            `file://${home}/.local/share/icons/${theme}/256x256/apps/${iconName}.png`,
+            `file:///usr/share/icons/${theme}/256x256/apps/${iconName}.png`,
+        ]""", """        return root.iconRoots.flatMap(base => [
             `file://${base}/${theme}/apps/scalable/${iconName}.svg`,
             `file://${base}/${theme}/scalable/apps/${iconName}.svg`,
             `file://${base}/${theme}/apps/256x256/${iconName}.png`,
             `file://${base}/${theme}/256x256/apps/${iconName}.png`
-        ])""" + text[end:]
-path.write_text(text)
+        ])""")
 replace('scripts/inir', '    install_user_service >/dev/null', '''    if ! systemctl --user cat inir.service >/dev/null 2>&1; then
         echo "inir: enable the NixOS or Home Manager service first" >&2
         return 1

@@ -1,4 +1,5 @@
 """Exercise the packaged theme writer with a failing GSettings backend."""
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -30,3 +31,24 @@ class RuntimeTests(unittest.TestCase):
         runtime = Path(os.environ['INIR_TEST_PACKAGE']) / 'share/quickshell/inir'
         for file in ['scripts/inir', 'scripts/colors/apply-gtk-theme.sh']:
             subprocess.run(['bash', '-n', str(runtime / file)], check=True)
+
+    def test_icon_service_qml_syntax(self):
+        linter = os.environ['INIR_TEST_QMLLINT']
+
+        def syntax_errors(path):
+            result = subprocess.run([
+                linter, '--ignore-settings', '--bare', '--max-warnings', '-1',
+                '--json', '-', str(path)
+            ], capture_output=True, text=True)
+            # Qt tools can return zero despite parse errors. Inspect diagnostics.
+            report = json.loads(result.stdout)
+            self.assertEqual(len(report['files']), 1)
+            return [warning for warning in report['files'][0]['warnings']
+                    if warning.get('id') == 'syntax']
+
+        with tempfile.TemporaryDirectory() as directory:
+            broken = Path(directory) / 'Broken.qml'
+            broken.write_text('import QtQml\nQtObject { function broken() { return [ } }\n')
+            self.assertTrue(syntax_errors(broken), 'parser must detect invalid QML')
+        runtime = Path(os.environ['INIR_TEST_PACKAGE']) / 'share/quickshell/inir'
+        self.assertEqual(syntax_errors(runtime / 'services/IconThemeService.qml'), [])

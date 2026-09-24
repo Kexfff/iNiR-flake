@@ -78,6 +78,7 @@
         };
         configuration = pkgs.runCommand "inir-configuration-check" {
           nativeBuildInputs = [ pkgs.python3 pkgs.niri pkgs.bash ];
+          INIR_TEST_QMLLINT = "${pkgs.qt6.qtdeclarative}/bin/qmllint";
           INIR_TEST_PACKAGE = self.packages.${pkgs.stdenv.hostPlatform.system}.inir;
         } ''
           export HOME="$TMPDIR/home"
